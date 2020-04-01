@@ -2,44 +2,119 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"log"
 	"net"
+	"sync"
+
+	"github.com/scukonick/friends/internal/dispatcher"
 )
 
 // Server serves tcp and udp connections
 type Server struct {
+	disp *dispatcher.Dispatcher
 }
 
 // NewServer returns instance of Server
-func NewServer() *Server {
-	return &Server{}
+func NewServer(disp *dispatcher.Dispatcher) *Server {
+	return &Server{
+		disp: disp,
+	}
 }
 
-func handlerFunc(ctx context.Context, conn net.Conn) {
-	_, err := conn.Write([]byte("please stay home\n"))
+func (s *Server) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn net.Conn) {
+	defer wg.Done()
+	defer safeClose(conn)
+
+	req := &dispatcher.Request{}
+	decoder := json.NewDecoder(conn)
+	encoder := json.NewEncoder(conn)
+
+	err := decoder.Decode(req)
 	if err != nil {
-		log.Printf("write failed: %v\n", err)
+		log.Printf("ERR: failed to decode input")
+		return
 	}
 
-	err = conn.Close()
+	readCtx, cancel := context.WithCancel(ctx)
+	msgs, err := s.disp.Connect(readCtx, req)
 	if err != nil {
-		log.Printf("failed to close conn: %v\n", err)
+		log.Printf("failed to connect: %v", err)
+		return
 	}
+
+	innerWG := &sync.WaitGroup{}
+	innerWG.Add(1)
+
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+
+		for m := range msgs {
+			err := encoder.Encode(m)
+			if err != nil {
+				log.Printf("failed to encode msg: %v", err)
+			}
+		}
+	}(innerWG)
+
+	for {
+		buf := make([]byte, 1)
+		_, err := conn.Read(buf)
+		if err != nil {
+			// connection failed
+			cancel()
+			break
+		}
+	}
+
+	// connection closed, sending our farewells
+	err = s.disp.Disconnect(ctx, req)
+	if err != nil {
+		log.Printf("ERR: failed to disconnect")
+	}
+
+	wg.Wait()
 }
 
 func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
-		// handle error
 	}
+
 	log.Println("ready to accept connections")
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			return err
-			// handle error
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				break
+			}
+
+			wg.Add(1)
+			go s.handlerFunc(ctx, wg, conn)
 		}
-		go handlerFunc(ctx, conn)
+	}()
+
+	<-ctx.Done()
+	err = ln.Close()
+	if err != nil {
+		log.Printf("ERR: failed to stop listening: %v", err)
+	}
+
+	wg.Wait()
+	log.Println("exiting")
+
+	return nil
+}
+
+func safeClose(c io.Closer) {
+	err := c.Close()
+	if err != nil {
+		log.Printf("failed to close connection: %v", err)
 	}
 }
