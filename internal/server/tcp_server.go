@@ -11,19 +11,19 @@ import (
 	"github.com/scukonick/friends/internal/dispatcher"
 )
 
-// Server serves tcp and udp connections
-type Server struct {
+// TCPServer serves tcp connections
+type TCPServer struct {
 	disp dispatcher.Dispatcher
 }
 
-// NewServer returns instance of Server
-func NewServer(disp dispatcher.Dispatcher) *Server {
-	return &Server{
+// NewTCPServer returns instance of TCPServer
+func NewTCPServer(disp dispatcher.Dispatcher) *TCPServer {
+	return &TCPServer{
 		disp: disp,
 	}
 }
 
-func (s *Server) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn net.Conn) {
+func (s *TCPServer) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn net.Conn) {
 	defer wg.Done()
 	defer safeClose(conn)
 
@@ -77,13 +77,13 @@ func (s *Server) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn net.C
 	wg.Wait()
 }
 
-func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
+func (s *TCPServer) ListenAndServe(ctx context.Context, addr string) error {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 
-	log.Println("ready to accept connections")
+	log.Println("ready to accept tcp connections")
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {

@@ -30,6 +30,8 @@ func (d *BaseDispatcher) Connect(ctx context.Context, req *Request) (<-chan Resp
 	out := make(chan Response)
 
 	go func(out chan<- Response) {
+		defer close(out)
+
 		for m := range in {
 			online := m == "online"
 			out <- Response{
