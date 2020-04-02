@@ -13,11 +13,11 @@ import (
 
 // Server serves tcp and udp connections
 type Server struct {
-	disp *dispatcher.Dispatcher
+	disp dispatcher.Dispatcher
 }
 
 // NewServer returns instance of Server
-func NewServer(disp *dispatcher.Dispatcher) *Server {
+func NewServer(disp dispatcher.Dispatcher) *Server {
 	return &Server{
 		disp: disp,
 	}

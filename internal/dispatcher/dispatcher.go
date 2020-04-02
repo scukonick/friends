@@ -6,17 +6,17 @@ import (
 	"github.com/scukonick/friends/internal/bus"
 )
 
-type Dispatcher struct {
+type BaseDispatcher struct {
 	b bus.Bus
 }
 
-func NewDispatcher(b bus.Bus) *Dispatcher {
-	return &Dispatcher{
+func NewBaseDispatcher(b bus.Bus) *BaseDispatcher {
+	return &BaseDispatcher{
 		b: b,
 	}
 }
 
-func (d *Dispatcher) Connect(ctx context.Context, req *Request) (<-chan Response, error) {
+func (d *BaseDispatcher) Connect(ctx context.Context, req *Request) (<-chan Response, error) {
 	err := d.b.Broadcast(ctx, "online", req.UserID)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (d *Dispatcher) Connect(ctx context.Context, req *Request) (<-chan Response
 	return out, nil
 }
 
-func (d *Dispatcher) Disconnect(ctx context.Context, req *Request) error {
+func (d *BaseDispatcher) Disconnect(ctx context.Context, req *Request) error {
 	err := d.b.Publish(ctx, "offline", req.Friends)
 	if err != nil {
 		return err

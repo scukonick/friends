@@ -12,7 +12,7 @@ import (
 
 func main() {
 	localBus := bus.NewLocalBus()
-	disp := dispatcher.NewDispatcher(localBus)
+	disp := dispatcher.NewBaseDispatcher(localBus)
 
 	srv := server.NewServer(disp)
 	err := srv.ListenAndServe(context.Background(), "127.0.0.1:9090")

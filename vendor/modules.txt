@@ -1,12 +1,19 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/golang/mock v1.4.3
+## explicit
+github.com/golang/mock/gomock
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/stretchr/testify v1.5.1
 ## explicit
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# golang.org/x/text v0.3.2
+## explicit
 # gopkg.in/yaml.v2 v2.2.8
 ## explicit
 gopkg.in/yaml.v2
+# rsc.io/sampler v1.99.99
+## explicit
