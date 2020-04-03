@@ -44,8 +44,6 @@ func (s *UDPServer) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn *u
 
 	firstMsg := <-conn.in
 
-	log.Printf("msg: %s", string(firstMsg))
-
 	req := &dispatcher.Request{}
 	err := json.Unmarshal(firstMsg, req)
 	if err != nil {
@@ -78,7 +76,6 @@ func (s *UDPServer) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn *u
 				log.Printf("failed to send msg: %v", err)
 			}
 		}
-		log.Printf("exiting msgs routine")
 	}(innerWG)
 
 	innerWG.Add(1)
@@ -103,7 +100,7 @@ func (s *UDPServer) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn *u
 	// connection closed, sending our farewells
 	err = s.disp.Disconnect(ctx, req)
 	if err != nil {
-		log.Printf("ERR: failed to disconnect")
+		log.Printf("ERR: failed to disconnect: %v", err)
 	}
 }
 
@@ -188,7 +185,7 @@ func (s *UDPServer) ListenAndServe(ctx context.Context, addr string) error {
 	}
 
 	wg.Wait()
-	log.Println("exiting")
+	log.Println("exiting udp server")
 
 	return nil
 }

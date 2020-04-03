@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/scukonick/friends/internal/bus"
 	"github.com/scukonick/friends/internal/dispatcher"
@@ -16,6 +19,7 @@ func main() {
 	disp := dispatcher.NewBaseDispatcher(localBus)
 
 	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
 
 	wg := &sync.WaitGroup{}
 
@@ -39,5 +43,15 @@ func main() {
 		}
 	}()
 
+	<-exitHandler()
+	log.Println("received exit signal")
+	cancel()
 	wg.Wait()
+	log.Println("exiting")
+}
+
+func exitHandler() <-chan os.Signal {
+	c := make(chan os.Signal, 2)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	return c
 }

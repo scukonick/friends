@@ -2,7 +2,6 @@ package dispatcher
 
 import (
 	"context"
-
 	"github.com/scukonick/friends/internal/bus"
 )
 

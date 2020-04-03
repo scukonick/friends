@@ -56,25 +56,37 @@ func (s *TCPServer) handlerFunc(ctx context.Context, wg *sync.WaitGroup, conn ne
 				log.Printf("failed to encode msg: %v", err)
 			}
 		}
+		log.Printf("exiting msg")
 	}(innerWG)
 
-	for {
-		buf := make([]byte, 1)
-		_, err := conn.Read(buf)
-		if err != nil {
-			// connection failed
-			cancel()
-			break
+	innerWG.Add(1)
+	go func(wg *sync.WaitGroup) {
+		defer wg.Done()
+		// checking conn status
+		for {
+			buf := make([]byte, 1)
+			_, err := conn.Read(buf)
+			if err != nil {
+				// connection failed
+				cancel()
+				break
+			}
 		}
-	}
 
-	// connection closed, sending our farewells
-	err = s.disp.Disconnect(ctx, req)
+		// connection closed, sending our farewells
+		err = s.disp.Disconnect(ctx, req)
+		if err != nil {
+			log.Printf("ERR: failed to disconnect: %v", err)
+		}
+	}(innerWG)
+
+	<-readCtx.Done()
+	err = conn.Close()
 	if err != nil {
-		log.Printf("ERR: failed to disconnect")
+		// just ignoring it here
 	}
 
-	wg.Wait()
+	innerWG.Wait()
 }
 
 func (s *TCPServer) ListenAndServe(ctx context.Context, addr string) error {
@@ -107,7 +119,7 @@ func (s *TCPServer) ListenAndServe(ctx context.Context, addr string) error {
 	}
 
 	wg.Wait()
-	log.Println("exiting")
+	log.Println("exiting tcp server")
 
 	return nil
 }
